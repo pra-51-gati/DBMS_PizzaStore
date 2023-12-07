@@ -9,6 +9,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 /*
  * This file is where the front end magic happens.
@@ -178,16 +184,130 @@ public class Menu {
 		* After displaying the list of orders (in a condensed format) must allow the user to select a specific order for viewing its details.  
 		* The details include the full order type information, the pizza information (including pizza discounts), and the order discounts.
 		* 
-		*/ 
-			
+		*/
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		System.out.println("Would you like to:\n(a) display all orders [open or closed]\n(b) display all open orders\n(c) display all completed [closed] orders\n(d) display orders since a specific date");
+		char choice = (char) reader.read();
+		try  {
+			ArrayList<Order> orders = null;
+			if (choice == 'a' || choice == 'A') {
+
+				orders = DBNinja.getOrders(false);
+				if(orders.isEmpty()){
+					System.out.println("No orders to display, returning to menu.");
+					return;
+				}
+				for (Order order : orders) {
+					System.out.println(order.toSimplePrint());
+				}
+
+
+				System.out.println("Which order would you like to see in detail? Enter the number (-1 to exit): ");
+				reader.readLine();
+				int orderID = Integer.parseInt(reader.readLine());
+				if(orderID==-1){
+					return;
+				}
+
+				Map<Integer, Order> resultMap = orders.stream().collect(Collectors.toMap(x -> x.getOrderID(), x -> x));
+				resultMap.get(orderID);
+
+				System.out.println(resultMap.get(orderID).toString());
+
+
+
+			}
+			if (choice == 'b' || choice == 'B') {
+
+				orders = DBNinja.getOrders(true);
+				if(orders.isEmpty()){
+					System.out.println("No orders to display, returning to menu.");
+					return;
+				}
+				for (Order order : orders) {
+					System.out.println(order.toSimplePrint());
+				}
+
+
+				System.out.println("Which order would you like to see in detail? Enter the number (-1 to exit): ");
+				reader.readLine();
+				int orderID = Integer.parseInt(reader.readLine());
+				if(orderID==-1){
+					return;
+				}
+
+				Map<Integer, Order> resultMap = orders.stream().collect(Collectors.toMap(x -> x.getOrderID(), x -> x));
+				resultMap.get(orderID);
+
+				System.out.println(resultMap.get(orderID).toString());
+
+
+
+			}
+			if (choice == 'c' || choice == 'C') {
+
+				orders = DBNinja.getCompletedOrders();
+				if(orders.isEmpty()){
+					System.out.println("No orders to display, returning to menu.");
+					return;
+				}
+				for (Order order : orders) {
+					System.out.println(order.toSimplePrint());
+				}
+
+
+				System.out.println("Which order would you like to see in detail? Enter the number (-1 to exit): ");
+				reader.readLine();
+				int orderID = Integer.parseInt(reader.readLine());
+				if(orderID==-1){
+					return;
+				}
+
+				Map<Integer, Order> resultMap = orders.stream().collect(Collectors.toMap(x -> x.getOrderID(), x -> x));
+				resultMap.get(orderID);
+
+				System.out.println(resultMap.get(orderID).toString());
+
+
+
+			}
+			if (choice == 'd' || choice == 'D') {
+
+				System.out.println("What is the date you want to restrict by? (FORMAT= YYYY-MM-DD)");
+
+				reader.readLine();
+				String dateString = reader.readLine();
+				try {
+					LocalDate parsedDate = LocalDate.parse(dateString);
+
+				} catch (DateTimeParseException e) {
+					System.out.println("I don't understand that input, returning to menu");
+				}
+				orders = DBNinja.getOrdersByDate(dateString);
+				if(orders.isEmpty()){
+					System.out.println("No orders to display, returning to menu.");
+					return;
+				}
+				for (Order order : orders) {
+					System.out.println(order.toSimplePrint());
+				}
+
+				System.out.println("Which order would you like to see in detail? Enter the number (-1 to exit): ");
+				int orderID = Integer.parseInt(reader.readLine());
+				Map<Integer, Order> resultMap = orders.stream().collect(Collectors.toMap(x -> x.getOrderID(), x -> x));
+				resultMap.get(orderID);
+
+				System.out.println(resultMap.get(orderID).toString());
+
+
+			}
+		}catch (SQLException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		// User Input Prompts...
-		System.out.println("Would you like to:\n(a) display all orders [open or closed]\n(b) display all open orders\n(c) display all completed [closed] orders\n(d) display orders since a specific date");
-		System.out.println("What is the date you want to restrict by? (FORMAT= YYYY-MM-DD)");
-		System.out.println("I don't understand that input, returning to menu");
-		System.out.println("Which order would you like to see in detail? Enter the number (-1 to exit): ");
-		System.out.println("Incorrect entry, returning to menu.");
-		System.out.println("No orders to display, returning to menu.");
+
 
 
 
@@ -204,16 +324,34 @@ public class Menu {
 		 * and allow the user to choose which of the incomplete orders they wish to mark as complete
 		 * 
 		 */
-		
-		
-		
-		// User Input Prompts...
-		System.out.println("There are no open orders currently... returning to menu...");
-		System.out.println("Which order would you like mark as complete? Enter the OrderID: ");
-		System.out.println("Incorrect entry, not an option");
+		ArrayList<Order> orders = DBNinja.getOrders(true);
+		if(!orders.isEmpty()) {
+			for (Order order : orders) {
+				System.out.println(order.toSimplePrint());
+			}
+			BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-		
-		
+
+			System.out.println("Which order would you like mark as complete? Enter the OrderID: ");
+			Integer orderId = Integer.parseInt(reader.readLine());
+			Order order = null;
+			int index = 0;
+			for (int i = 0; i < orders.size(); i++) {
+				if (orders.get(i).getOrderID() == orderId) {
+					index = i;
+				}
+			}
+			if(index==0){
+				System.out.println("Incorrect entry, not an option");
+				return;
+			}
+			order = orders.get(index);
+			DBNinja.completeOrder(order);
+		}
+		else{
+			System.out.println("There are no open orders currently... returning to menu...");
+
+		}
 
 	}
 
@@ -222,7 +360,7 @@ public class Menu {
 		/*
 		 * Print the inventory. Display the topping ID, name, and current inventory
 		*/
-		
+		DBNinja.printInventory();
 		
 		
 		
@@ -234,12 +372,35 @@ public class Menu {
 		/*
 		 * This should print the current inventory and then ask the user which topping (by ID) they want to add more to and how much to add
 		 */
+		ArrayList<Topping> toppings = null;
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		System.out.println("Current Inventory Levels:");
+		Menu.ViewInventoryLevels();
+
+		System.out.println("Which topping do you want to add inventory to? Enter the number: ");
+		int toppingID = Integer.parseInt(reader.readLine());
+
+		toppings=DBNinja.getToppingList();
+
+		Topping t= null;
+		for(Topping topping:toppings){
+			if(topping.getTopID()==toppingID){
+				t=topping;
+			}
+		}
+		if(t==null){
+			System.out.println("Incorrect entry, not an option");
+			return;
+		}
+		System.out.println("How many units would you like to add? ");
+		double quantity = Float.parseFloat(reader.readLine());
+		DBNinja.addToInventory(t,quantity);
 		
 		
 		// User Input Prompts...
-		System.out.println("Which topping do you want to add inventory to? Enter the number: ");
-		System.out.println("How many units would you like to add? ");
-		System.out.println("Incorrect entry, not an option");
+
+
+
 	
 		
 		
@@ -303,9 +464,30 @@ public class Menu {
 		 * 
 		 */
 
-		// User Input Prompts...
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		System.out.println("Which report do you wish to print? Enter\n(a) ToppingPopularity\n(b) ProfitByPizza\n(c) ProfitByOrderType:");
-		System.out.println("I don't understand that input... returning to menu...");
+
+		char option = (char) reader.read();
+
+		switch (option) {
+			case 'a':
+				DBNinja.printToppingPopReport();
+
+				break;
+			case 'b':
+				DBNinja.printProfitByPizzaReport();
+				break;
+			case 'c':
+				DBNinja.printProfitByOrderType();
+				break;
+			default:
+				System.out.println("I don't understand that input... returning to menu...");
+				break;
+		}
+
+
+		// User Input Prompts...
+
 
 	}
 

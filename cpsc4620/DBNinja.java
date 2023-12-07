@@ -156,7 +156,7 @@ public final class DBNinja {
 		 */
 		try {
 			connect_to_db();
-			String sql = "insert into customer(CustomerFirstName, CustomerLastName, CustomerPhone) values(?, ?, ?)";
+			String sql = "insert into customer(CustomerFirstName, CustomerLastName, CustomerPhoneNo) values(?, ?, ?)";
 			PreparedStatement preparedStatement = conn.prepareStatement(sql);
 			preparedStatement.setString(1, c.getFName());
 			preparedStatement.setString(2, c.getLName());
@@ -175,11 +175,36 @@ public final class DBNinja {
 	}
 
 	public static void completeOrder(Order o) throws SQLException, IOException {
-		connect_to_db();
 		/*
 		 * Find the specifed order in the database and mark that order as complete in the database.
 		 * 
 		 */
+
+		try {
+			connect_to_db();
+
+			String updateStatement = "update ordert set IsCompleted = 1 where OrdertID = " + o.getOrderID() + " ;";
+
+			PreparedStatement preparedStatement = conn.prepareStatement(updateStatement);
+
+			preparedStatement.executeUpdate();
+			String completed="Completed";
+			String updatePizzaStatement = "update pizza set PizzaState = ?  where PizzaOrderID = ?" ;
+
+			PreparedStatement pizzaPreparedStatement = conn.prepareStatement(updatePizzaStatement);
+			pizzaPreparedStatement.setString(1,"Completed");
+			pizzaPreparedStatement.setInt(2,o.getOrderID());
+
+			pizzaPreparedStatement.executeUpdate();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		
 
 
@@ -205,12 +230,49 @@ public final class DBNinja {
 		 * Don't forget to order the data coming from the database appropriately.
 		 * 
 		 */
+		ArrayList<Order> orders = new ArrayList<Order>();
+
+		try {
+			connect_to_db();
+
+			String selectQuery = "select * from ordert";
+			if (openOnly) {
+				selectQuery += " where (IsCompleted = false)";
+			}
+			selectQuery += " order by OrdertTimeStamp desc;";
+
+			Statement statement = conn.createStatement();
+
+			ResultSet record = statement.executeQuery(selectQuery);
+
+			while (record.next()) {
+				Integer orderId = record.getInt("OrdertID");
+				String orderType = record.getString("OrdertType");
+				Integer customerId = record.getInt("OrdertCustomerID");
+				Double orderCost = record.getDouble("OrdertCustomerPrice");
+				Double orderPrice = record.getDouble("OrdertBusinessPrice");
+				String orderTimeStamp = record.getString("OrdertTimeStamp");
+				Integer OrderCompleteState = record.getInt("IsCompleted");
+
+				orders.add(
+						new Order(orderId, customerId, orderType, orderTimeStamp, orderCost, orderPrice, OrderCompleteState));
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 
 
 
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return null;
+		return orders;
 	}
 	
 	public static Order getLastOrder(){
@@ -233,12 +295,107 @@ public final class DBNinja {
 		 * and return a list of those orders.
 		 *  
 		 */
+		ArrayList<Order> orders = new ArrayList<Order>();
+
+		try {
+			connect_to_db();
+
+			String selectQuery = "select * from ordert";
+
+			selectQuery += " where (OrdertTimeStamp >= '" + date + " 00:00:00')";
+
+			selectQuery += " order by OrdertTimeStamp desc;";
+
+			Statement statement = conn.createStatement();
+
+			ResultSet record = statement.executeQuery(selectQuery);
+
+			while (record.next()) {
+				Integer orderId = record.getInt("OrdertID");
+				String orderType = record.getString("OrdertType");
+				Integer customerId = record.getInt("OrdertCustomerID");
+				Double orderCost = record.getDouble("OrdertCustomerPrice");
+				Double orderPrice = record.getDouble("OrdertBusinessPrice");
+				String orderTimeStamp = record.getString("OrdertTimeStamp");
+				Integer OrderCompleteState = record.getInt("IsCompleted");
+
+				orders.add(
+						new Order(orderId, customerId, orderType, orderTimeStamp, orderCost, orderPrice, OrderCompleteState));
+
+			}
+			conn.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		
 
 
 
 
-		 return null;
+		 return orders;
+	}
+	public static ArrayList<Order> getCompletedOrders() throws SQLException, IOException {
+		connect_to_db();
+		/*
+		 * Return an arraylist of all of the orders.
+		 * 	openOnly == true => only return a list of open (ie orders that have not been marked as completed)
+		 *           == false => return a list of all the orders in the database
+		 * Remember that in Java, we account for supertypes and subtypes
+		 * which means that when we create an arrayList of orders, that really
+		 * means we have an arrayList of dineinOrders, deliveryOrders, and pickupOrders.
+		 *
+		 * Don't forget to order the data coming from the database appropriately.
+		 *
+		 */
+		ArrayList<Order> orders = new ArrayList<Order>();
+
+		try {
+			connect_to_db();
+
+			String selectQuery = "select * from ordert";
+
+				selectQuery += " where (IsCompleted = True)";
+
+			selectQuery += " order by OrdertTimeStamp desc;";
+
+			Statement statement = conn.createStatement();
+
+			ResultSet record = statement.executeQuery(selectQuery);
+
+			while (record.next()) {
+				Integer orderId = record.getInt("OrdertID");
+				String orderType = record.getString("OrdertType");
+				Integer customerId = record.getInt("OrdertCustomerID");
+				Double orderCost = record.getDouble("OrdertCustomerPrice");
+				Double orderPrice = record.getDouble("OrdertBusinessPrice");
+				String orderTimeStamp = record.getString("OrdertTimeStamp");
+				Integer OrderCompleteState = record.getInt("IsCompleted");
+
+				orders.add(
+						new Order(orderId, customerId, orderType, orderTimeStamp, orderCost, orderPrice, OrderCompleteState));
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+
+
+
+		//DO NOT FORGET TO CLOSE YOUR CONNECTION
+		return orders;
 	}
 		
 	public static ArrayList<Discount> getDiscountList() throws SQLException, IOException {
@@ -325,12 +482,13 @@ public final class DBNinja {
 		 * If it's not found....then return null
 		 *  
 		 */
-		
 
-
-
-
-		 return null;
+		/*
+		 * Query the data for all the customers and return an arrayList of all the customers.
+		 * Don't forget to order the data coming from the database appropriately.
+		 *
+		 */
+		return null;
 	}
 
 
@@ -342,16 +500,42 @@ public final class DBNinja {
 		 * Don't forget to order the data coming from the database appropriately.
 		 * 
 		 */
+		ArrayList<Topping> toppings = new ArrayList<Topping>();
+		try {
+			connect_to_db();
+			String sql = "SELECT * FROM topping";
+			PreparedStatement preparedStatement = conn.prepareStatement(sql);
 
-		
+			ResultSet records = preparedStatement.executeQuery();
+			while (records.next()) {
+				int toppingID = records.getInt("ToppingID");
+				String toppingName = records.getString("ToppingName");
+				Double toppingCustomerPrice = records.getDouble("ToppingCustomerPrice");
+				Double toppingBusinessPrice = records.getDouble("ToppingBusinessPrice");
+				Double toppingQuantityForPersonal = records.getDouble("ToppingQuantityForPersonal");
+				Double toppingQuantityForMediumUnits = records.getDouble("ToppingQuantityForMediumUnits");
+				Double toppingQuantityForLargeUnits = records.getDouble("ToppingQuantityForLargeUnits");
+				Double toppingQuantityForXLargeUnits = records.getDouble("ToppingQuantityForXLargeUnits");
+				int toppingMinInvLvl = records.getInt("ToppingMinInvLvl");
+				int toppingCurrentInvLvl = records.getInt("ToppingCurrentInvLvl");
+				toppings.add(
+						new Topping(toppingID,toppingName, toppingCustomerPrice, toppingBusinessPrice, toppingQuantityForPersonal,
+								toppingQuantityForMediumUnits,toppingQuantityForLargeUnits,toppingQuantityForXLargeUnits,toppingMinInvLvl
+								,toppingCurrentInvLvl));
 
-		
-		
-		
-		
-		
-		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return null;
+			}
+		}catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return toppings;
+
 	}
 
 	public static Topping findToppingByName(String name){
@@ -371,18 +555,39 @@ public final class DBNinja {
 
 
 	public static void addToInventory(Topping t, double quantity) throws SQLException, IOException {
-		connect_to_db();
 		/*
 		 * Updates the quantity of the topping in the database by the amount specified.
 		 * 
 		 * */
+		try {
+			connect_to_db();
+			String sql = "UPDATE topping SET ToppingCurrentInvLvl = ToppingCurrentInvLvl+? WHERE ToppingID = ?";
+			Connection conn = DBConnector.make_connection();
+			PreparedStatement preparedStatement = conn.prepareStatement(sql);
+			preparedStatement.setDouble(1, quantity);
+			preparedStatement.setInt(2, t.getTopID());
+			preparedStatement.executeUpdate();
+			/*
+			 * Adds toAdd amount of topping to topping t.
+			 */
+			conn.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 
 
-		
-		
-		
-		
-		
+
+
+
+
+
+
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
 	
@@ -417,13 +622,34 @@ public final class DBNinja {
 	}
 
 	public static void printInventory() throws SQLException, IOException {
-		connect_to_db();
+
 		/*
 		 * Queries the database and prints the current topping list with quantities.
 		 *  
 		 * The result should be readable and sorted as indicated in the prompt.
 		 * 
 		 */
+		try {
+			connect_to_db();
+
+			String sql = "SELECT ToppingID, ToppingName, ToppingCurrentInvLvl FROM topping order by ToppingName";
+			PreparedStatement preparedStatement = conn.prepareStatement(sql);
+			ResultSet results = preparedStatement.executeQuery();
+
+			while (results.next()) {
+				System.out.println("ToppingID: " + results.getString("ToppingID") + " | Name: " + results.getString("ToppingName") + " | CurrentInvLvl: " + results.getString("ToppingCurrentInvLvl"));
+			}
+
+			conn.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 
 
 		
@@ -447,6 +673,29 @@ public final class DBNinja {
 		 * The result should be readable and sorted as indicated in the prompt.
 		 * 
 		 */
+		try {
+			String maxOrdSql = "SELECT * FROM ToppingPopularity";
+			PreparedStatement prepared = conn.prepareStatement(maxOrdSql);
+			ResultSet report = prepared.executeQuery();
+			int maxOrderID = -1;
+			System.out.printf("%-20s  %-4s %n", "Topping", "ToppingCount");
+			while (report.next()) {
+				String topping = report.getString("Topping");
+				Integer toppingCount = report.getInt("ToppingCount");
+				System.out.printf("%-20s  %-4s %n", topping, toppingCount);
+			}
+
+			//DO NOT FORGET TO CLOSE YOUR CONNECTION
+			conn.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 
 
 		
@@ -468,6 +717,33 @@ public final class DBNinja {
 		 * The result should be readable and sorted as indicated in the prompt.
 		 * 
 		 */
+		try {
+			String maxOrdSql = "SELECT * FROM ProfitByPizza";
+			PreparedStatement prepared = conn.prepareStatement(maxOrdSql);
+			ResultSet report = prepared.executeQuery();
+			System.out.printf("%-15s  %-15s  %-10s %-30s%n", "Size", "Crust", "Profit", "OrderMonth");
+			while (report.next()) {
+
+				String size = report.getString("Size");
+				String crust = report.getString("Crust");
+				Double profit = report.getDouble("Profit");
+				String orderDate = report.getString("OrderMonth");
+
+				System.out.printf("%-15s  %-15s  %-10s %-30s%n", size, crust, profit, orderDate);
+
+			}
+
+			//DO NOT FORGET TO CLOSE YOUR CONNECTION
+			conn.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		
 		
@@ -487,6 +763,35 @@ public final class DBNinja {
 		 * The result should be readable and sorted as indicated in the prompt.
 		 * 
 		 */
+		try {
+			String maxOrdSql = "SELECT * FROM ProfitByOrderType";
+			PreparedStatement prepared = conn.prepareStatement(maxOrdSql);
+			ResultSet report = prepared.executeQuery();
+			System.out.printf("%-15s  %-15s  %-18s %-18s %-8s%n", "CustomerType", "OrderMonth", "TotalOrderPrice",
+					"TotalOrderCost", "Profit");
+			while (report.next()) {
+
+				String customerType = report.getString("CustomerType");
+				String orderMonth = report.getString("OrderMonth");
+				Double totalPrice = report.getDouble("TotalOrderPrice");
+				Double totalCost = report.getDouble("TotalOrderCost");
+				Double profit = report.getDouble("Profit");
+				System.out.printf("%-15s  %-15s  %-18s %-18s %-8s%n", customerType, orderMonth, totalPrice,
+						totalCost, profit);
+
+			}
+
+			//DO NOT FORGET TO CLOSE YOUR CONNECTION
+			conn.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		
 		
@@ -517,7 +822,7 @@ public final class DBNinja {
 		 * 
 		 */
 		String cname1 = "";
-		String query = "Select FName, LName From customer WHERE CustID=" + CustID + ";";
+		String query = "Select CustomerFirstName, CustomerLastName From customer WHERE CustomerID=" + CustID + ";";
 		Statement stmt = conn.createStatement();
 		ResultSet rset = stmt.executeQuery(query);
 		
@@ -534,13 +839,13 @@ public final class DBNinja {
 		PreparedStatement os;
 		ResultSet rset2;
 		String query2;
-		query2 = "Select FName, LName From customer WHERE CustID=?;";
+		query2 = "Select CustomerFirstName, CustomerLastName From customer WHERE CustomerID=?;";
 		os = conn.prepareStatement(query2);
 		os.setInt(1, CustID);
 		rset2 = os.executeQuery();
 		while(rset2.next())
 		{
-			cname2 = rset2.getString("FName") + " " + rset2.getString("LName"); // note the use of field names in the getSting methods
+			cname2 = rset2.getString("CustomerFirstName") + " " + rset2.getString("CustomerLastName"); // note the use of field names in the getSting methods
 		}
 
 		conn.close();
